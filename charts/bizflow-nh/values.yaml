@@ -1,0 +1,124 @@
+# ============================================================
+# BizFlow NH — Helm values
+# ============================================================
+
+image:
+  registry: bizcode.azurecr.io
+  api: bizflownh-api
+  dashboard: bizflownh-dashboard
+  pdfSidecar: bizflownh-pdf-sidecar
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: acr-secret
+
+# ── KSeF ──
+ksef:
+  # test | demo | prod
+  environment: test
+  baseUrl: https://ksef-test.mf.gov.pl
+
+# ── JWT ──
+jwt:
+  key: ""  # Required — generate with: openssl rand -base64 48
+
+# ── OpenBao (Secrets Management) ──
+openbao:
+  enabled: true
+  image: openbao/openbao:2.5.0
+  devMode: true
+  token: dev-only-token
+  persistence:
+    size: 1Gi
+
+# ── PDF Sidecar ──
+pdfSidecar:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+# ── API ──
+api:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+
+# ── Dashboard ──
+dashboard:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# ── Ingress ──
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  host: bizflow.example.com
+  tls:
+    enabled: true
+    secretName: bizflow-nh-tls
+
+# ── Timezone ──
+timezone: Europe/Warsaw
+
+# ── Node tolerations ──
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+
+# ── DB Backup ──
+backup:
+  enabled: true
+  schedule: "0 3 * * *"
+  retention: 7
+  persistence:
+    size: 10Gi
+
+# ── Redis (Bitnami subchart) ──
+redis:
+  enabled: true
+  auth:
+    password: ""  # Generated if empty
+  architecture: standalone
+  master:
+    persistence:
+      size: 2Gi
+
+# ── RabbitMQ (Bitnami subchart) ──
+rabbitmq:
+  enabled: true
+  auth:
+    username: bizflownh
+    password: ""  # Generated if empty
+  persistence:
+    size: 2Gi
+
+# ── PostgreSQL (Bitnami subchart) ──
+postgresql:
+  enabled: true
+  auth:
+    username: bizflownh
+    password: ""  # Generated if empty
+    database: bizflownh
+  primary:
+    persistence:
+      size: 10Gi

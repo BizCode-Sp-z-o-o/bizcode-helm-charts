@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bizflow-nh.fullname" . }}-api
+  labels:
+    {{- include "bizflow-nh.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: api
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- include "bizflow-nh.tolerations" . | nindent 6 }}
+      containers:
+        - name: api
+          image: "{{ .Values.image.registry }}/{{ .Values.image.api }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: ConnectionStrings__DefaultConnection
+              value: "Host={{ .Release.Name }}-postgresql;Port=5432;Database={{ .Values.postgresql.auth.database }};Username={{ .Values.postgresql.auth.username }};Password=$(POSTGRES_PASSWORD)"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bizflow-nh.fullname" . }}-secrets
+                  key: postgres-password
+            - name: Jwt__Key
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bizflow-nh.fullname" . }}-secrets
+                  key: jwt-key
+            - name: Jwt__Issuer
+              value: BizFlowNH
+            - name: Jwt__Audience
+              value: BizFlowNH
+            - name: KSeF__BaseUrl
+              value: {{ .Values.ksef.baseUrl | quote }}
+            - name: Pdf__SidecarUrl
+              value: "http://{{ include "bizflow-nh.fullname" . }}-pdf-sidecar:3100"
+            - name: RabbitMQ__Host
+              value: "{{ .Release.Name }}-rabbitmq"
+            - name: RabbitMQ__Username
+              value: {{ .Values.rabbitmq.auth.username | quote }}
+            - name: RabbitMQ__Password
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bizflow-nh.fullname" . }}-secrets
+                  key: rabbitmq-password
+            - name: OpenBao__Url
+              value: "http://{{ include "bizflow-nh.fullname" . }}-openbao:8200"
+            - name: OpenBao__Token
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bizflow-nh.fullname" . }}-secrets
+                  key: openbao-token
+            - name: TZ
+              value: {{ .Values.timezone | quote }}
+          {{- with .Values.api.resources }}
+          resources: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
