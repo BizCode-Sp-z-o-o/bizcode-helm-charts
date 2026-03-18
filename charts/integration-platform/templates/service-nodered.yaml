@@ -1,0 +1,21 @@
+{{- $root := . }}
+{{- range $i := until (int .Values.instances) }}
+{{- $idx := printf "%02d" $i }}
+{{- $name := printf "bip-%s" $idx }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "bip.instanceLabels" (dict "name" $name "context" $root) | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+  ports:
+    - name: http
+      port: 1880
+      targetPort: 1880
+{{- end }}

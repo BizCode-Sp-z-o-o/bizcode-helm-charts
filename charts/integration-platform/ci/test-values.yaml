@@ -1,0 +1,18 @@
+# CI test values — minimal config for helm template validation
+instances: 2
+persistence:
+  enabled: false
+cups:
+  enabled: true
+redis:
+  enabled: false
+rabbitmq:
+  enabled: false
+postgresql:
+  enabled: false
+extraHosts:
+  - host: saptest
+    ip: 10.0.0.1
+ingress:
+  enabled: true
+  host: test.example.com

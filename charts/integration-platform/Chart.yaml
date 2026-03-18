@@ -1,0 +1,29 @@
+apiVersion: v2
+name: integration-platform
+description: BizCode Integration Platform — Node-RED based integration suite for SAP Business One
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/BizCode-Sp-z-o-o/bizcode-helm-charts
+maintainers:
+  - name: BizCode Sp. z o.o.
+    url: https://bizcode.pl
+keywords:
+  - node-red
+  - sap
+  - sap-business-one
+  - integration
+  - bizcode
+dependencies:
+  - name: redis
+    version: "~20.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+  - name: rabbitmq
+    version: "~15.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: rabbitmq.enabled
+  - name: postgresql
+    version: "~16.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled

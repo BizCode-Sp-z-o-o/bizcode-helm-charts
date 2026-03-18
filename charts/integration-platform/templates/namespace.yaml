@@ -1,0 +1,3 @@
+{{- if .Release.IsInstall }}
+# Namespace is managed by helm install --namespace
+{{- end }}

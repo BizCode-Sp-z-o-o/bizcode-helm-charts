@@ -1,0 +1,89 @@
+{{- $root := . }}
+{{- range $i := until (int .Values.instances) }}
+{{- $idx := printf "%02d" $i }}
+{{- $name := printf "bip-%s" $idx }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "bip.instanceLabels" (dict "name" $name "context" $root) | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $name }}
+        app.kubernetes.io/instance: {{ $root.Release.Name }}
+        app.kubernetes.io/component: nodered
+    spec:
+      {{- with $root.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $root.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $root.Values.extraHosts }}
+      hostAliases:
+        {{- range $root.Values.extraHosts }}
+        - ip: {{ .ip | quote }}
+          hostnames:
+            - {{ .host | quote }}
+        {{- end }}
+      {{- end }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: nodered
+          image: "{{ $root.Values.image.repository }}:{{ $root.Values.image.tag }}"
+          imagePullPolicy: {{ $root.Values.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "bip.fullname" $root }}-admin
+          env:
+            - name: TZ
+              value: {{ $root.Values.timezone | quote }}
+            {{- if $root.Values.cups.enabled }}
+            - name: CUPS_SERVER
+              value: "{{ include "bip.fullname" $root }}-cups:631"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 1880
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 1880
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            failureThreshold: 4
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 1880
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 6
+          {{- with $root.Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          {{- if $root.Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ $name }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+{{- end }}

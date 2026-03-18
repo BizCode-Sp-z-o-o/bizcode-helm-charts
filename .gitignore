@@ -1,0 +1,3 @@
+charts/integration-platform/charts/
+charts/integration-platform/Chart.lock
+.helm-packages/

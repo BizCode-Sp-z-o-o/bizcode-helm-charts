@@ -1,0 +1,23 @@
+{{- if .Values.persistence.enabled }}
+{{- $root := . }}
+{{- range $i := until (int .Values.instances) }}
+{{- $idx := printf "%02d" $i }}
+{{- $name := printf "bip-%s" $idx }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $name }}-data
+  labels:
+    {{- include "bip.instanceLabels" (dict "name" $name "context" $root) | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if $root.Values.persistence.storageClass }}
+  storageClassName: {{ $root.Values.persistence.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ $root.Values.persistence.size }}
+{{- end }}
+{{- end }}

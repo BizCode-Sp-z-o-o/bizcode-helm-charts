@@ -1,0 +1,102 @@
+# ============================================================
+# BizCode Integration Platform — Helm values
+# ============================================================
+
+# ── Node-RED instances ──
+instances: 10
+
+image:
+  repository: bizcode.azurecr.io/integration-platform
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: acr-secret
+
+# ── Node-RED admin credentials ──
+admin:
+  username: admin
+  password: bizcode2025!
+
+# ── Timezone ──
+timezone: Europe/Warsaw
+
+# ── Storage ──
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 5Gi
+
+# ── Ingress ──
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  host: integrations.example.com
+  tls:
+    enabled: true
+    secretName: bip-tls
+
+# ── CUPS Print Server ──
+cups:
+  enabled: true
+  image: ydkn/cups
+  adminPassword: bizcode-cups-2025
+  persistence:
+    size: 1Gi
+
+# ── Extra hosts for SAP / NetBIOS resolution ──
+extraHosts: []
+  # - host: sapserver
+  #   ip: 192.168.1.100
+  # - host: sapdb
+  #   ip: 192.168.1.101
+
+# ── Node tolerations (for control-plane scheduling) ──
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+  - key: node-role.kubernetes.io/master
+    operator: Exists
+    effect: NoSchedule
+
+# ── Resource limits ──
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+# ── Redis (Bitnami subchart) ──
+redis:
+  enabled: true
+  auth:
+    password: bizcode-redis-2025
+  architecture: standalone
+  master:
+    persistence:
+      size: 2Gi
+
+# ── RabbitMQ (Bitnami subchart) ──
+rabbitmq:
+  enabled: true
+  auth:
+    username: bizcode
+    password: bizcode-rmq-2025
+  persistence:
+    size: 2Gi
+
+# ── PostgreSQL (Bitnami subchart) ──
+postgresql:
+  enabled: true
+  auth:
+    username: bizcode
+    password: bizcode-pg-2025
+    database: bizcode
+  primary:
+    persistence:
+      size: 10Gi
