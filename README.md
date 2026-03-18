@@ -54,6 +54,26 @@ helm install bip oci://bizcode.azurecr.io/helm/integration-platform \
   --set ingress.host=integrations.yourcompany.com
 ```
 
+## Install via Rancher
+
+1. Go to **Apps → Repositories → Create**
+2. Set:
+   - **Name:** `bizcode`
+   - **Index URL:** `https://bizcode-sp-z-o-o.github.io/bizcode-helm-charts`
+3. Click **Create**
+4. Go to **Apps → Charts** → find `bizflow-nh` or `integration-platform`
+5. Click **Install**, configure values, deploy
+
+> **Note:** Before installing, create the ACR pull secret in your namespace (see Quick Start above).
+
+## Install via Helm CLI
+
+```bash
+helm repo add bizcode https://bizcode-sp-z-o-o.github.io/bizcode-helm-charts
+helm repo update
+helm install bizflow-nh bizcode/bizflow-nh -n bizflow-nh -f values.yaml
+```
+
 ## Custom Values
 
 Create a `values.yaml` per client and install with `-f values.yaml`.

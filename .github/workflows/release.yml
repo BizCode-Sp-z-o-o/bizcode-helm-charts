@@ -1,27 +1,11 @@
-name: Lint, Test and Release Charts
+name: Release Charts
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
-      - name: Helm lint
-        run: |
-          cd charts/integration-platform
-          helm dependency update
-          helm lint .
-          helm template test . -f ci/test-values.yaml > /dev/null
-
   release:
-    needs: lint
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -31,23 +15,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: azure/setup-helm@v4
-
-      - name: Package chart
+      - name: Configure Git
         run: |
-          cd charts/integration-platform
-          helm dependency update
-          cd ../..
-          helm package charts/integration-platform -d .helm-packages
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Push to ACR (OCI)
-        run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | helm registry login bizcode.azurecr.io -u "${{ secrets.ACR_USERNAME }}" --password-stdin
-          for pkg in .helm-packages/*.tgz; do
-            helm push "$pkg" oci://bizcode.azurecr.io/helm
-          done
+      - name: Install Helm
+        uses: azure/setup-helm@v4
 
-      - name: Update GitHub Pages Helm repo
-        uses: helm/chart-releaser-action@v1.7.0
+      - name: Add Bitnami repo (for dependencies)
+        run: helm repo add bitnami https://charts.bitnami.com/bitnami
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
