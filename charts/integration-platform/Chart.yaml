@@ -2,8 +2,8 @@ apiVersion: v2
 name: integration-platform
 description: BizCode Integration Platform — Node-RED based integration suite for SAP Business One
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.2.0
+appVersion: "0.2.0"
 home: https://github.com/BizCode-Sp-z-o-o/bizcode-helm-charts
 maintainers:
   - name: BizCode Sp. z o.o.
