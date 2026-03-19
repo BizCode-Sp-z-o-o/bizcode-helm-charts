@@ -23,10 +23,19 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v4
 
-      - name: Add Bitnami repo (for dependencies)
-        run: helm repo add bitnami https://charts.bitnami.com/bitnami
+      - name: Add Bitnami repo and build dependencies
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          for dir in charts/*/; do
+            if [ -f "$dir/Chart.yaml" ]; then
+              echo "Building dependencies for $dir..."
+              helm dependency build "$dir"
+            fi
+          done
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.6.0
+        with:
+          skip_existing: true
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
