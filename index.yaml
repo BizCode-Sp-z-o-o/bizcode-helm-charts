@@ -1,5 +1,39 @@
 apiVersion: v1
 entries:
+  bizflow-nh:
+  - apiVersion: v2
+    appVersion: 0.1.1
+    created: "2026-03-19T12:10:33.827886599Z"
+    dependencies:
+    - condition: redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: ~20.0
+    - condition: rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      version: ~15.0
+    - condition: postgresql.enabled
+      name: postgresql
+      repository: https://charts.bitnami.com/bitnami
+      version: ~16.0
+    description: BizFlow NH — KSeF integration platform for SAP Business One
+    digest: 927ac7e923c5bf29dfe5331850cb8805b426285c70c88790bb5a7b46f1420982
+    home: https://github.com/BizCode-Sp-z-o-o/bizcode-helm-charts
+    keywords:
+    - ksef
+    - sap
+    - sap-business-one
+    - e-invoice
+    - bizcode
+    maintainers:
+    - name: BizCode Sp. z o.o.
+      url: https://bizcode.pl
+    name: bizflow-nh
+    type: application
+    urls:
+    - https://github.com/BizCode-Sp-z-o-o/bizcode-helm-charts/releases/download/bizflow-nh-0.1.2/bizflow-nh-0.1.2.tgz
+    version: 0.1.2
   integration-platform:
   - apiVersion: v2
     appVersion: 0.2.0
@@ -35,4 +69,4 @@ entries:
     urls:
     - https://github.com/BizCode-Sp-z-o-o/bizcode-helm-charts/releases/download/integration-platform-0.2.0/integration-platform-0.2.0.tgz
     version: 0.2.0
-generated: "2026-03-19T12:05:41.831250815Z"
+generated: "2026-03-19T12:10:33.827900836Z"
