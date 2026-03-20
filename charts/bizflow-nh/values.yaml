@@ -7,6 +7,7 @@ image:
   api: bizflownh-api
   dashboard: bizflownh-dashboard
   pdfSidecar: bizflownh-pdf-sidecar
+  landing: bizflownh-landing
   tag: latest
   pullPolicy: Always
 
@@ -78,13 +79,29 @@ dashboard:
       cpu: 200m
       memory: 128Mi
 
+# ── Landing ──
+landing:
+  dashboardUrl: "https://app.example.com"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
 # ── Ingress ──
 ingress:
   enabled: false
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
-  host: bizflow.example.com
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+  hosts:
+    landing: bizflow.example.com
+    dashboard: app.bizflow.example.com
+    api: api.bizflow.example.com
   tls:
     enabled: true
     secretName: bizflow-nh-tls
@@ -100,6 +117,54 @@ tolerations:
   - key: node-role.kubernetes.io/master
     operator: Exists
     effect: NoSchedule
+
+# ── Monitoring ──
+monitoring:
+  enabled: true
+  otelCollector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    retention: 30d
+    persistence:
+      size: 10Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  tempo:
+    image: grafana/tempo:2.4.1
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+  grafana:
+    image: grafana/grafana:10.4.1
+    adminPassword: admin
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
 
 # ── DB Backup ──
 backup:

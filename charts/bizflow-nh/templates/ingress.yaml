@@ -16,20 +16,36 @@ spec:
   {{- if .Values.ingress.tls.enabled }}
   tls:
     - hosts:
-        - {{ .Values.ingress.host }}
+        - {{ .Values.ingress.hosts.landing }}
+        - {{ .Values.ingress.hosts.dashboard }}
+        - {{ .Values.ingress.hosts.api }}
       secretName: {{ .Values.ingress.tls.secretName }}
   {{- end }}
   rules:
-    - host: {{ .Values.ingress.host }}
+    # ── Landing ──
+    - host: {{ .Values.ingress.hosts.landing }}
       http:
         paths:
-          - path: /api
+          - path: /
             pathType: Prefix
             backend:
               service:
-                name: {{ include "bizflow-nh.fullname" . }}-api
+                name: {{ include "bizflow-nh.fullname" . }}-landing
                 port:
-                  number: 8080
+                  number: 4321
+    # ── Dashboard + Grafana ──
+    - host: {{ .Values.ingress.hosts.dashboard }}
+      http:
+        paths:
+          {{- if .Values.monitoring.enabled }}
+          - path: /monitoring/grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "bizflow-nh.fullname" . }}-grafana
+                port:
+                  number: 3000
+          {{- end }}
           - path: /
             pathType: Prefix
             backend:
@@ -37,4 +53,15 @@ spec:
                 name: {{ include "bizflow-nh.fullname" . }}-dashboard
                 port:
                   number: 4322
+    # ── API ──
+    - host: {{ .Values.ingress.hosts.api }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "bizflow-nh.fullname" . }}-api
+                port:
+                  number: 8080
 {{- end }}

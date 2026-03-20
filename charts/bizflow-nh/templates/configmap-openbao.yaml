@@ -1,0 +1,91 @@
+{{- if and .Values.openbao.enabled (not .Values.openbao.devMode) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bizflow-nh.fullname" . }}-openbao-config
+  labels:
+    {{- include "bizflow-nh.labels" . | nindent 4 }}
+data:
+  config.hcl: |
+    storage "file" {
+      path = "/openbao/data"
+    }
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = 1
+    }
+    api_addr     = "http://0.0.0.0:8200"
+    cluster_addr = "http://0.0.0.0:8201"
+    ui = true
+
+  entrypoint.sh: |
+    #!/bin/sh
+    set -e
+
+    CONFIG_DIR="/openbao/config"
+    DATA_DIR="/openbao/data"
+    UNSEAL_DIR="/openbao/unseal"
+    INIT_FILE="$UNSEAL_DIR/init.json"
+
+    bao server -config="$CONFIG_DIR/config.hcl" &
+    SERVER_PID=$!
+
+    echo "Waiting for OpenBao to start..."
+    for i in $(seq 1 30); do
+        if bao status -address=http://127.0.0.1:8200 2>&1 | grep -q "Initialized"; then
+            break
+        fi
+        sleep 1
+    done
+
+    if [ ! -f "$INIT_FILE" ]; then
+        echo "First run — initializing OpenBao..."
+        bao operator init -address=http://127.0.0.1:8200 -key-shares=1 -key-threshold=1 -format=json > "$INIT_FILE"
+        echo "Initialization complete. Credentials saved."
+    fi
+
+    UNSEAL_KEY=$(cat "$INIT_FILE" | grep -o '"unseal_keys_b64":\[\"[^"]*' | sed 's/.*\["//')
+    ROOT_TOKEN=$(cat "$INIT_FILE" | grep -o '"root_token":"[^"]*' | sed 's/"root_token":"//')
+
+    SEALED=$(bao status -address=http://127.0.0.1:8200 -format=json 2>/dev/null | grep -o '"sealed":[a-z]*' | sed 's/"sealed"://')
+    if [ "$SEALED" = "true" ]; then
+        echo "Unsealing..."
+        bao operator unseal -address=http://127.0.0.1:8200 "$UNSEAL_KEY" > /dev/null
+    fi
+
+    export BAO_ADDR=http://127.0.0.1:8200
+    export BAO_TOKEN="$ROOT_TOKEN"
+
+    if ! bao secrets list 2>/dev/null | grep -q "^secret/"; then
+        echo "Enabling kv-v2 secrets engine..."
+        bao secrets enable -version=2 secret
+    fi
+
+    if ! bao auth list 2>/dev/null | grep -q "^approle/"; then
+        echo "Enabling AppRole auth..."
+        bao auth enable approle
+
+        bao policy write bizflownh-api - <<'POLICY'
+    path "secret/data/*" { capabilities = ["create", "read", "update", "delete", "list"] }
+    path "secret/metadata/*" { capabilities = ["list", "read", "delete"] }
+    POLICY
+
+        bao write auth/approle/role/bizflownh-api \
+            token_policies="bizflownh-api" \
+            token_ttl=1h \
+            token_max_ttl=4h
+
+        ROLE_ID=$(bao read -field=role_id auth/approle/role/bizflownh-api/role-id)
+        SECRET_ID=$(bao write -field=secret_id -f auth/approle/role/bizflownh-api/secret-id)
+
+        echo ""
+        echo "================================================"
+        echo "  AppRole credentials (save these!):"
+        echo "  ROLE_ID:   $ROLE_ID"
+        echo "  SECRET_ID: $SECRET_ID"
+        echo "================================================"
+    fi
+
+    echo "OpenBao is ready."
+    wait $SERVER_PID
+{{- end }}

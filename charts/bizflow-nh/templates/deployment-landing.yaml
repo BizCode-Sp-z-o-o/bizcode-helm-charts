@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bizflow-nh.fullname" . }}-landing
+  labels:
+    {{- include "bizflow-nh.labels" . | nindent 4 }}
+    app.kubernetes.io/component: landing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: landing
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: landing
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- include "bizflow-nh.tolerations" . | nindent 6 }}
+      containers:
+        - name: landing
+          image: "{{ .Values.image.registry }}/{{ .Values.image.landing }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 4321
+          env:
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PUBLIC_DASHBOARD_URL
+              value: {{ .Values.landing.dashboardUrl | quote }}
+          {{- with .Values.landing.resources }}
+          resources: {{- toYaml . | nindent 12 }}
+          {{- end }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 4321
+            initialDelaySeconds: 5
+            periodSeconds: 10

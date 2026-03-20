@@ -2,8 +2,8 @@ apiVersion: v2
 name: bizflow-nh
 description: BizFlow NH — KSeF integration platform for SAP Business One
 type: application
-version: 0.2.0
-appVersion: "0.2.0"
+version: 0.3.0
+appVersion: "0.3.0"
 home: https://github.com/BizCode-Sp-z-o-o/bizcode-helm-charts
 maintainers:
   - name: BizCode Sp. z o.o.

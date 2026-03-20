@@ -22,6 +22,7 @@ spec:
       containers:
         - name: openbao
           image: {{ .Values.openbao.image | quote }}
+          {{- if .Values.openbao.devMode }}
           command: ["bao", "server", "-dev"]
           env:
             - name: BAO_DEV_ROOT_TOKEN_ID
@@ -31,16 +32,67 @@ spec:
                   key: openbao-token
             - name: BAO_DEV_LISTEN_ADDRESS
               value: "0.0.0.0:8200"
+          {{- else }}
+          command: ["/bin/sh", "/openbao/config/entrypoint.sh"]
+          volumeMounts:
+            - name: openbao-config
+              mountPath: /openbao/config
+            - name: openbao-data
+              mountPath: /openbao/data
+            - name: openbao-unseal
+              mountPath: /openbao/unseal
+          {{- end }}
           ports:
             - containerPort: 8200
           securityContext:
             capabilities:
               add: ["IPC_LOCK"]
+      {{- if not .Values.openbao.devMode }}
+      volumes:
+        - name: openbao-config
+          configMap:
+            name: {{ include "bizflow-nh.fullname" . }}-openbao-config
+            defaultMode: 0755
+        - name: openbao-data
+          persistentVolumeClaim:
+            claimName: {{ include "bizflow-nh.fullname" . }}-openbao-data
+        - name: openbao-unseal
+          persistentVolumeClaim:
+            claimName: {{ include "bizflow-nh.fullname" . }}-openbao-unseal
+      {{- end }}
 ---
+{{- if not .Values.openbao.devMode }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bizflow-nh.fullname" . }}-openbao-data
+  labels:
+    {{- include "bizflow-nh.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ .Values.openbao.persistence.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bizflow-nh.fullname" . }}-openbao-unseal
+  labels:
+    {{- include "bizflow-nh.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 100Mi
+---
+{{- end }}
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "bizflow-nh.fullname" . }}-openbao
+  labels:
+    {{- include "bizflow-nh.labels" . | nindent 4 }}
 spec:
   selector:
     app.kubernetes.io/instance: {{ .Release.Name }}

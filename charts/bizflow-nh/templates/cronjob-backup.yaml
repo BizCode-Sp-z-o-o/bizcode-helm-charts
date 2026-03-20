@@ -1,0 +1,54 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "bizflow-nh.fullname" . }}-db-backup
+  labels:
+    {{- include "bizflow-nh.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          {{- include "bizflow-nh.tolerations" . | nindent 10 }}
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  pg_dump -h {{ .Release.Name }}-postgresql -U {{ .Values.postgresql.auth.username }} -Fc {{ .Values.postgresql.auth.database }} | \
+                  gzip > /backup/bizflownh-$(date +%Y%m%d-%H%M%S).sql.gz
+                  find /backup -name "*.sql.gz" -mtime +{{ .Values.backup.retention }} -delete
+                  echo "Backup complete"
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "bizflow-nh.fullname" . }}-secrets
+                      key: postgres-password
+              volumeMounts:
+                - name: backup-volume
+                  mountPath: /backup
+          volumes:
+            - name: backup-volume
+              persistentVolumeClaim:
+                claimName: {{ include "bizflow-nh.fullname" . }}-db-backups
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bizflow-nh.fullname" . }}-db-backups
+  labels:
+    {{- include "bizflow-nh.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: {{ .Values.backup.persistence.size }}
+{{- end }}
