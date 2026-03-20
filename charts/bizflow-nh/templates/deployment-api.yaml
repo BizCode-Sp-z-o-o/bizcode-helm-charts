@@ -66,6 +66,22 @@ spec:
                 secretKeyRef:
                   name: {{ include "bizflow-nh.fullname" . }}-secrets
                   key: openbao-token
+            {{- if .Values.minio.enabled }}
+            - name: ObjectStorage__Provider
+              value: minio
+            - name: ObjectStorage__Endpoint
+              value: "{{ include "bizflow-nh.fullname" . }}-minio:9000"
+            - name: ObjectStorage__AccessKey
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bizflow-nh.fullname" . }}-secrets
+                  key: minio-access-key
+            - name: ObjectStorage__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bizflow-nh.fullname" . }}-secrets
+                  key: minio-secret-key
+            {{- end }}
             - name: TZ
               value: {{ .Values.timezone | quote }}
           {{- with .Values.api.resources }}

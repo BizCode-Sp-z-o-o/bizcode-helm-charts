@@ -32,6 +32,22 @@ openbao:
   persistence:
     size: 1Gi
 
+# ── MinIO (Object Storage) ──
+minio:
+  enabled: true
+  image: minio/minio:latest
+  accessKey: ""  # Generated if empty
+  secretKey: ""  # Generated if empty
+  persistence:
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
 # ── PDF Sidecar ──
 pdfSidecar:
   resources:
